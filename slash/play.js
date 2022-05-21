@@ -118,6 +118,8 @@ module.exports = {
         })
     }
 
+    console.log('helelo');
+
     if (!queue.playing) await queue.play();
     await interaction.editReply({
       embeds: [embed]
