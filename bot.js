@@ -41,7 +41,7 @@ for (const file of slashFiles) {
 }
 
 if (LOAD_SLASH) {
-  const rest = new REST({ version: '9' }).setToken(TOKEN);
+  const rest = new REST({ version: '10' }).setToken(TOKEN);
   console.log('Deploying slash commands');
   rest.put(Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID), { body: commands })
     .then(() => {
