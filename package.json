@@ -25,6 +25,8 @@
     "node-fetch": "^3.2.1",
     "nodemon": "^2.0.16",
     "radio-browser": "^2.2.1",
-    "undici": "^4.15.0"
+    "string-progressbar": "^1.0.4",
+    "undici": "^4.15.0",
+    "ytdl-core": "^4.11.2"
   }
 }

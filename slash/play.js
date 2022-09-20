@@ -3,6 +3,7 @@ const { MessageEmbed } = require('discord.js');
 const { QueryType } = require('discord-player');
 const RadioBrowser = require('radio-browser');
 const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus, VoiceConnectionStatus, entersState } = require('@discordjs/voice');
+const { splitBar } = require('string-progressbar');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -136,7 +137,7 @@ module.exports = {
         });
     }
 
-    const queue = await client.player.createQueue(interaction.guild);
+    const queue = await client.player.createQueue(interaction.guild, { autoSelfDeaf: false, spotifyBridge: true });
     if (!queue.connection) {
       await queue.connect(interaction.member.voice.channel);
     }
@@ -167,11 +168,20 @@ module.exports = {
       }
 
       const playlist = result.playlist;
+
+      let duration = 0;
+      result.tracks.forEach((track) => {
+        duration = duration + parseInt(track.duration.split(':')[0]);
+      });
+
+      const hoursAndMinutes = Math.round((duration / 60) * 100) / 100;
+      const hours = Math.round(hoursAndMinutes);
+      const minutes = Math.floor((Math.round((hoursAndMinutes % 1) * 100) / 100) * 60);
+
       await queue.addTracks(result.tracks);
       embed.setDescription(`**${result.tracks.length} songs from [${playlist.title}](${playlist.url})** have been added to the Queue`)
         .setThumbnail(playlist.thumbnail)
-        // TODO: added a check for the duration of the songs retrieved
-        .setFooter({ text: `Duration: unknown` });
+        .setFooter({ text: `Duration: ${hours}h ${minutes}m` });
 
     } else if (interaction.options.getSubcommand() === 'search') {
       let url = interaction.options.getString('searchterms');
@@ -188,12 +198,30 @@ module.exports = {
       embed.setDescription(`${song.title} has been added to the queue!`)
         .setThumbnail(song.thumbnail)
         .setFooter({ text: `Duration: ${song.duration}` });
-
     }
 
     if (!queue.playing) {
       await queue.play();
     }
+
+    client.player.on('trackStart', (queue, track) => {
+      let interval = setInterval(async (queue, track) => {
+        const playerTimestamp = queue.getPlayerTimestamp();
+        const customProgressBar = splitBar(100, playerTimestamp.progress, 25);
+
+        embed.setDescription(`Now playing **${track.title}**\n\n${customProgressBar[0]}\n\n${playerTimestamp.current} - ${playerTimestamp.end}`)
+          .setThumbnail(track.thumbnail)
+          .setFooter({ text: '' });
+
+        await interaction.editReply({
+          embeds: [embed]
+        });
+      }, 1000, queue, track);
+
+      client.player.on('trackEnd', () => {
+        clearInterval(interval);
+      });
+    });
 
     await interaction.editReply({
       embeds: [embed]
